@@ -113,6 +113,11 @@ export function Composer({ sessionKey }: { sessionKey: string }) {
     if (popup?.kind === "file" && files.length === 0 && session) void bridge.projects.files(session.cwd).then(setFiles);
   }, [popup?.kind, files.length, session?.cwd]);
   useEffect(() => setPopupIndex(0), [popup?.query, popup?.kind]);
+  // Keep the highlighted row inside the popup's scroll box as the arrow keys move it.
+  const popupRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    popupRef.current?.children[popupIndex]?.scrollIntoView({ block: "nearest" });
+  }, [popupIndex, popupCount]);
 
   const updateText = (next: string, caret: number) => {
     setText(next);
@@ -250,7 +255,7 @@ export function Composer({ sessionKey }: { sessionKey: string }) {
       }}
     >
       {popup && popupCount > 0 && (
-        <div className="anim-fade-up absolute right-0 bottom-full left-0 z-20 mb-1.5 max-h-[280px] overflow-y-auto rounded-lg border border-border bg-surface-raised p-1 shadow-[var(--shadow)]">
+        <div ref={popupRef} className="anim-fade-up absolute right-0 bottom-full left-0 z-20 mb-1.5 max-h-[280px] overflow-y-auto rounded-lg border border-border bg-surface-raised p-1 shadow-[var(--shadow)]">
           {popup.kind === "command"
             ? commandItems.map((c, i) => (
                 <button
