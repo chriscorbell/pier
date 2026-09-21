@@ -6,7 +6,6 @@ import { MainHeader } from "@/components/MainHeader";
 import { Transcript } from "@/components/Transcript";
 import { Composer } from "@/components/Composer";
 import { QueueList } from "@/components/QueueList";
-import { ContextStrip } from "@/components/ContextStrip";
 import { Button, Spinner } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -103,7 +102,6 @@ export function Thread() {
       )}
       <QueueList sessionKey={key} queue={session.queue} />
       <Composer sessionKey={key} />
-      <ContextStrip sessionKey={key} />
     </>
   );
 

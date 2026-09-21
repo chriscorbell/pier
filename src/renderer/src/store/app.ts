@@ -283,7 +283,11 @@ export const useApp = create<AppState>((set, get) => {
       case "message_end": {
         flushDeltas();
         const msg = event.message as { role?: string } | undefined;
-        if (msg?.role === "assistant") patchSession(key, { partial: null });
+        if (msg?.role === "assistant") {
+          patchSession(key, { partial: null });
+          // Usage arrives with the finished response, so the context meter can move now instead of at turn end.
+          void refreshStats(key);
+        }
         void refreshEntries(key);
         break;
       }
