@@ -4,7 +4,7 @@ import { useApp } from "@/store/app";
 import { bridge } from "@/lib/bridge";
 import { buildTranscript, promptHistory } from "@/lib/transcript";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from "@/components/ui";
-import { ContextMeter } from "@/components/ContextStrip";
+import { ContextMeter, WarmIndicator } from "@/components/ContextStrip";
 import { ImageThumb } from "@/components/Lightbox";
 import { cn, formatTokens } from "@/lib/utils";
 
@@ -361,6 +361,11 @@ export function Composer({ sessionKey }: { sessionKey: string }) {
           {session?.stats?.contextUsage && (
             <div className="ml-1.5 flex h-7 items-center text-ui-[12px] text-fg-muted">
               <ContextMeter percent={session.stats.contextUsage.percent} tokens={session.stats.contextUsage.tokens} window={session.stats.contextUsage.contextWindow} />
+            </div>
+          )}
+          {session?.statuses.warm && (
+            <div className="ml-2 flex h-7 items-center text-ui-[12px] text-fg-muted">
+              <WarmIndicator text={session.statuses.warm} />
             </div>
           )}
         </div>
