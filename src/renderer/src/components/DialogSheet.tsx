@@ -162,7 +162,7 @@ export function DialogSheet() {
                 data-option
                 onClick={() => void respond(key, dialog.id, { value: raw })}
                 className={cn(
-                  "group flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors duration-100 hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
+                  "group flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors duration-100 hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus",
                   o.custom ? "border-dashed border-border-strong text-fg-muted hover:text-fg" : "border-border",
                 )}
               >

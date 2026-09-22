@@ -112,10 +112,18 @@ body {
   background: var(--accent-soft);
 }
 
-/* Controls without their own focus style get the same thin ring instead of Chromium's blue outline. */
-:focus-visible {
-  outline: 1px solid var(--focus);
-  outline-offset: 1px;
+/* Fallback keyboard focus for controls without their own style: a thin inset ring that follows the
+   element's shape instead of Chromium's blue box. Lives in the base layer so utilities override it. */
+@layer base {
+  :focus-visible {
+    outline: 1px solid var(--focus);
+    outline-offset: -1px;
+  }
+  /* Text fields show focus through the caret and their container's border. */
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
 }
 
 * {

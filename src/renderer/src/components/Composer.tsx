@@ -320,7 +320,7 @@ export function Composer({ sessionKey }: { sessionKey: string }) {
         <div className="flex items-center gap-0.5">
           <Menu>
             <MenuTrigger asChild>
-              <button className="no-drag flex h-7 items-center gap-1.5 rounded-md px-2 text-ui-[13px] text-fg-muted transition-colors hover:bg-hover hover:text-fg">
+              <button className="no-drag flex h-7 items-center gap-1.5 rounded-md px-2 text-ui-[13px] text-fg-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:bg-hover focus-visible:text-fg">
                 <Cpu className="h-3.5 w-3.5" strokeWidth={1.75} />
                 <span className="max-w-[220px] truncate">{model ? model.name || model.id : "No model"}</span>
                 <ChevronDown className="h-3 w-3 text-fg-faint" strokeWidth={2} />
@@ -343,7 +343,7 @@ export function Composer({ sessionKey }: { sessionKey: string }) {
           </Menu>
           <Menu>
             <MenuTrigger asChild>
-              <button className="no-drag flex h-7 items-center gap-1.5 rounded-md px-2 text-ui-[13px] text-fg-muted transition-colors hover:bg-hover hover:text-fg">
+              <button className="no-drag flex h-7 items-center gap-1.5 rounded-md px-2 text-ui-[13px] text-fg-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:bg-hover focus-visible:text-fg">
                 <Brain className="h-3.5 w-3.5" strokeWidth={1.75} />
                 <span>{reasoningLabel(session?.state?.thinkingLevel)}</span>
                 <ChevronDown className="h-3 w-3 text-fg-faint" strokeWidth={2} />

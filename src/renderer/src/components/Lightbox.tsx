@@ -42,7 +42,7 @@ export function ImageThumb({ src, size = 56, className, children }: { src: strin
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open image preview"
-        className="block h-full w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
+        className="block h-full w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       >
         <img src={src} alt="" className="h-full w-full object-cover" draggable={false} />
       </button>

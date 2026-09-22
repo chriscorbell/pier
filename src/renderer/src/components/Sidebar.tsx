@@ -212,7 +212,7 @@ export function Sidebar() {
           ) : (
             <button
               onClick={() => setSearching(true)}
-              className="flex h-8 flex-1 items-center gap-2 rounded-md px-2 text-ui-[13.5px] text-fg-muted transition-colors hover:bg-hover hover:text-fg"
+              className="flex h-8 flex-1 items-center gap-2 rounded-md px-2 text-ui-[13.5px] text-fg-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:bg-hover focus-visible:text-fg"
             >
               <Search className="h-3.5 w-3.5" strokeWidth={2} />
               Search
@@ -275,9 +275,9 @@ export function Sidebar() {
                   setDragging(cwd);
                 }}
                 onDragEnd={() => finishDrag(cwd)}
-                className="group flex h-7 items-center gap-1 rounded-md pr-1 pl-2 text-ui-[12.5px] hover:bg-hover"
+                className="group flex h-7 items-center gap-1 rounded-md pr-1 pl-2 text-ui-[12.5px] hover:bg-hover has-[button:focus-visible]:bg-hover"
               >
-                <button onClick={() => toggle(cwd)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left" title={cwd}>
+                <button onClick={() => toggle(cwd)} className="flex h-full min-w-0 flex-1 items-center gap-1.5 text-left focus-visible:outline-none" title={cwd}>
                   <span className="truncate font-medium text-fg-faint">{name}</span>
                   {isCollapsed && attention > 0 && (
                     <span key={attention} className="anim-pop rounded-full bg-accent px-1.5 text-ui-[11px] font-semibold leading-4 text-accent-fg">{attention}</span>
@@ -307,8 +307,8 @@ export function Sidebar() {
                           else if (r.path) void openSession(cwd, r.path);
                         }}
                         className={cn(
-                          "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-ui-[13.5px] transition-colors duration-100",
-                          selected ? "bg-active text-fg" : "text-fg-muted hover:bg-hover hover:text-fg",
+                          "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-ui-[13.5px] transition-colors duration-100 focus-visible:outline-none",
+                          selected ? "bg-active text-fg" : "text-fg-muted hover:bg-hover hover:text-fg focus-visible:bg-hover focus-visible:text-fg",
                           emphasized && !selected && "text-fg",
                         )}
                       >

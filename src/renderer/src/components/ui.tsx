@@ -19,7 +19,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     <button
       ref={ref}
       className={cn(
-        "no-drag inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-[background-color,transform,opacity] duration-100 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
+        "no-drag inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-[background-color,transform,opacity] duration-100 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus",
         size === "sm" ? "h-7 px-2.5 text-ui-[13px]" : "h-8 px-3 text-ui-[14px]",
         variant === "default" && "border border-border-strong bg-surface-raised text-fg hover:bg-hover",
         variant === "primary" && "bg-accent text-accent-fg hover:brightness-110",
@@ -44,7 +44,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
         ref={ref}
         aria-label={label}
         className={cn(
-          "no-drag inline-flex h-7 w-7 items-center justify-center rounded-md text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg active:bg-active disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
+          "no-drag inline-flex h-7 w-7 items-center justify-center rounded-md text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg active:bg-active disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:bg-hover focus-visible:text-fg",
           active && "bg-active text-fg",
           className,
         )}
