@@ -3,7 +3,6 @@ import { ArrowDownToLine, ChevronDown, FolderPlus, PanelLeft, RefreshCw, RotateC
 import type { SessionStatus } from "@shared/contract";
 import { keyForPath, useApp } from "@/store/app";
 import { IconButton, Spinner } from "@/components/ui";
-import { Glyph } from "@/components/Logo";
 import { SessionContextMenu } from "@/components/SessionActions";
 import { cn, relativeTime } from "@/lib/utils";
 
@@ -65,7 +64,6 @@ export function Sidebar() {
   return (
     <div className="flex h-full flex-col">
       <div className="drag flex h-[52px] shrink-0 items-center pl-[98px] pr-2">
-        <Glyph className="h-[17px] w-[17px] text-fg" />
         <IconButton label="Hide sidebar (Cmd+B)" className="ml-auto" onClick={() => void update({ sidebarCollapsed: true })}>
           <PanelLeft className="h-4 w-4" strokeWidth={1.75} />
         </IconButton>
