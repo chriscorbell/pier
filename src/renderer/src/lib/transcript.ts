@@ -74,6 +74,8 @@ export function buildTranscript(entries: SessionEntry[], leafId: string | null):
   let lastAssistant: Extract<TranscriptItem, { kind: "assistant" }> | null = null;
   // The reasoning level in effect, once the branch has stated one; a model note names it.
   let reasoning: string | null = null;
+  // Model and reasoning changes before the first prompt are session setup, not conversation.
+  let conversationStarted = false;
 
   for (const e of path) {
     if (e.type === "message" && e.message) {
@@ -83,6 +85,7 @@ export function buildTranscript(entries: SessionEntry[], leafId: string | null):
           const images = typeof m.content === "string" ? [] : m.content.filter((b): b is ImageBlock => b.type === "image");
           items.push({ kind: "user", id: e.id, text: textOf(m.content), images, timestamp: m.timestamp });
           lastAssistant = null;
+          conversationStarted = true;
           break;
         }
         case "assistant": {
@@ -128,13 +131,14 @@ export function buildTranscript(entries: SessionEntry[], leafId: string | null):
         items.push({ kind: "compaction", id: e.id, summary: e.summary ?? "", tokensBefore: e.tokensBefore ?? 0 });
         break;
       case "model_change": {
+        if (!conversationStarted) break;
         const level = reasoning ? (reasoning === "off" ? " with reasoning off" : ` with ${reasoningLabel(reasoning).toLowerCase()} reasoning`) : "";
         items.push({ kind: "note", id: e.id, text: `Model changed to ${e.provider}/${e.modelId}${level}` });
         break;
       }
       case "thinking_level_change":
         reasoning = e.thinkingLevel ?? null;
-        items.push({ kind: "note", id: e.id, text: `Reasoning level changed to ${reasoningLabel(e.thinkingLevel).toLowerCase()}` });
+        if (conversationStarted) items.push({ kind: "note", id: e.id, text: `Reasoning level changed to ${reasoningLabel(e.thinkingLevel).toLowerCase()}` });
         break;
       case "custom_message":
         if (e.display) items.push({ kind: "custom", id: e.id, customType: e.customType ?? "extension", text: textOf(e.content) });
