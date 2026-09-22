@@ -1,4 +1,5 @@
 import type { AgentMessage, ContentBlock, SessionEntry } from "@shared/contract";
+import { reasoningLabel } from "@/lib/utils";
 
 export type ImageBlock = Extract<ContentBlock, { type: "image" }>;
 export type ToolResultMsg = Extract<AgentMessage, { role: "toolResult" }>;
@@ -71,6 +72,8 @@ export function buildTranscript(entries: SessionEntry[], leafId: string | null):
   const items: TranscriptItem[] = [];
   const pendingResults = new Map<string, ToolResultMsg>();
   let lastAssistant: Extract<TranscriptItem, { kind: "assistant" }> | null = null;
+  // The reasoning level in effect, once the branch has stated one; a model note names it.
+  let reasoning: string | null = null;
 
   for (const e of path) {
     if (e.type === "message" && e.message) {
@@ -124,11 +127,14 @@ export function buildTranscript(entries: SessionEntry[], leafId: string | null):
       case "compaction":
         items.push({ kind: "compaction", id: e.id, summary: e.summary ?? "", tokensBefore: e.tokensBefore ?? 0 });
         break;
-      case "model_change":
-        items.push({ kind: "note", id: e.id, text: `Model set to ${e.provider}/${e.modelId}` });
+      case "model_change": {
+        const level = reasoning ? (reasoning === "off" ? " with reasoning off" : ` with ${reasoningLabel(reasoning).toLowerCase()} reasoning`) : "";
+        items.push({ kind: "note", id: e.id, text: `Model changed to ${e.provider}/${e.modelId}${level}` });
         break;
+      }
       case "thinking_level_change":
-        items.push({ kind: "note", id: e.id, text: `Thinking level set to ${e.thinkingLevel}` });
+        reasoning = e.thinkingLevel ?? null;
+        items.push({ kind: "note", id: e.id, text: `Reasoning level changed to ${reasoningLabel(e.thinkingLevel).toLowerCase()}` });
         break;
       case "custom_message":
         if (e.display) items.push({ kind: "custom", id: e.id, customType: e.customType ?? "extension", text: textOf(e.content) });

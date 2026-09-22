@@ -6,7 +6,7 @@ import { buildTranscript, promptHistory } from "@/lib/transcript";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from "@/components/ui";
 import { ContextMeter, WarmIndicator } from "@/components/ContextStrip";
 import { ImageThumb } from "@/components/Lightbox";
-import { cn, formatTokens } from "@/lib/utils";
+import { cn, formatTokens, reasoningLabel } from "@/lib/utils";
 
 interface Attachment {
   id: number;
@@ -345,15 +345,15 @@ export function Composer({ sessionKey }: { sessionKey: string }) {
             <MenuTrigger asChild>
               <button className="no-drag flex h-7 items-center gap-1.5 rounded-md px-2 text-ui-[13px] text-fg-muted transition-colors hover:bg-hover hover:text-fg">
                 <Brain className="h-3.5 w-3.5" strokeWidth={1.75} />
-                <span className="capitalize">{session?.state?.thinkingLevel ?? "off"}</span>
+                <span>{reasoningLabel(session?.state?.thinkingLevel)}</span>
                 <ChevronDown className="h-3 w-3 text-fg-faint" strokeWidth={2} />
               </button>
             </MenuTrigger>
             <MenuContent align="start">
-              <MenuLabel>Thinking</MenuLabel>
+              <MenuLabel>Reasoning</MenuLabel>
               {(session?.thinkingLevels ?? []).map((l) => (
-                <MenuItem key={l} onSelect={() => void setThinking(sessionKey, l)} className={cn("capitalize", session?.state?.thinkingLevel === l && "text-accent")}>
-                  {l}
+                <MenuItem key={l} onSelect={() => void setThinking(sessionKey, l)} className={cn(session?.state?.thinkingLevel === l && "text-accent")}>
+                  {reasoningLabel(l)}
                 </MenuItem>
               ))}
             </MenuContent>

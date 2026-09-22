@@ -35,3 +35,15 @@ export function basename(path: string): string {
   const parts = path.split("/").filter(Boolean);
   return parts[parts.length - 1] ?? path;
 }
+
+/** Display name for a pi thinking level: "xhigh" reads as "Extra high". */
+export function reasoningLabel(level: string | null | undefined): string {
+  switch ((level ?? "off").toLowerCase()) {
+    case "xhigh":
+      return "Extra high";
+    case "off":
+      return "Off";
+    default:
+      return level!.charAt(0).toUpperCase() + level!.slice(1);
+  }
+}
