@@ -331,22 +331,28 @@ export function Sidebar() {
         })}
       </div>
 
-      {(upd.status === "available" || upd.status === "downloading" || upd.status === "ready") && (
+      {(upd.status === "available" || upd.status === "downloading" || upd.status === "installing" || upd.status === "ready") && (
         <div className="anim-item mx-2 mb-2 rounded-md border border-border bg-surface px-2.5 py-2 text-ui-[12.5px]">
           {upd.status === "ready" ? (
             <button onClick={() => void restartForUpdate()} className="flex w-full items-center gap-2 text-left text-fg hover:text-accent">
               <RotateCw className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
               <span className="flex-1">Restart to finish updating to {upd.latestVersion}</span>
             </button>
-          ) : upd.status === "downloading" ? (
+          ) : upd.status === "downloading" || upd.status === "installing" ? (
             <div>
               <div className="flex items-center gap-2 text-fg-muted">
-                <ArrowDownToLine className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-                <span className="flex-1">Downloading {upd.latestVersion}</span>
-                <span className="tabular-nums">{Math.round((upd.progress ?? 0) * 100)}%</span>
+                {upd.status === "installing" ? <Spinner className="h-3.5 w-3.5 shrink-0" /> : <ArrowDownToLine className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />}
+                <span className="flex-1">
+                  {upd.status === "installing" ? "Installing" : "Downloading"} {upd.latestVersion}
+                </span>
+                {upd.status === "downloading" && <span className="tabular-nums">{Math.round((upd.progress ?? 0) * 100)}%</span>}
               </div>
               <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border-strong/60">
-                <div className="h-full rounded-full bg-accent transition-[width] duration-200" style={{ width: `${(upd.progress ?? 0) * 100}%` }} />
+                {/* Progress arrives about every 100ms; a linear transition of the same length keeps the bar moving between reports. */}
+                <div
+                  className={cn("h-full rounded-full bg-accent transition-[width] duration-150 ease-linear", upd.status === "installing" && "anim-pulse")}
+                  style={{ width: `${(upd.progress ?? 0) * 100}%` }}
+                />
               </div>
             </div>
           ) : (

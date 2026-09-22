@@ -12,7 +12,9 @@ import type { UpdateState } from "@shared/contract";
 
 const run = promisify(execFile);
 const REPO = "chriscorbell/pier";
-const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const CHECK_INTERVAL_MS = 60 * 1000;
+/** Download progress is reported at most this often; the renderer animates between reports. */
+const PROGRESS_INTERVAL_MS = 100;
 
 interface Release {
   tag_name: string;
@@ -95,26 +97,40 @@ export class Updater extends EventEmitter<{ state: [UpdateState] }> {
   }
 
   async check(silent = false): Promise<void> {
-    if (this.state.status === "downloading" || this.state.status === "ready") return;
+    if (this.state.status === "downloading" || this.state.status === "installing" || this.state.status === "ready") return;
     if (!app.isPackaged) {
       this.set({ status: "idle", error: "Updates apply to the installed app, not the dev build." });
       return;
     }
-    this.set({ status: "checking", error: undefined });
+    // Only a manual check shows its spinner; the periodic one would tick the footer every minute.
+    if (!silent) this.set({ status: "checking", error: undefined });
     try {
-      const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-        headers: { Accept: "application/vnd.github+json", "User-Agent": `pier/${app.getVersion()}` },
+      // The check runs every minute, which would exhaust the unauthenticated API quota (60/hour).
+      // The releases/latest page redirects to the tag without touching the API; only a newer tag
+      // costs an API call for the asset list.
+      const head = await fetch(`https://github.com/${REPO}/releases/latest`, {
+        method: "HEAD",
+        redirect: "manual",
+        headers: { "User-Agent": `pier/${app.getVersion()}` },
       });
-      if (!res.ok) throw new Error(`GitHub responded ${res.status}`);
-      const release = (await res.json()) as Release;
-      const version = release.tag_name.replace(/^v/, "");
+      const location = head.headers.get("location") ?? "";
+      const tag = /\/releases\/tag\/([^/?#]+)/.exec(location)?.[1];
+      if (!tag) throw new Error(`GitHub responded ${head.status} without a release tag`);
+      const version = decodeURIComponent(tag).replace(/^v/, "");
       if (!isNewer(version, app.getVersion())) {
         this.set({ status: "idle", latestVersion: version, checkedAt: Date.now() });
         return;
       }
+      if (this.release?.tag_name.replace(/^v/, "") !== version) {
+        const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+          headers: { Accept: "application/vnd.github+json", "User-Agent": `pier/${app.getVersion()}` },
+        });
+        if (!res.ok) throw new Error(`GitHub responded ${res.status}`);
+        this.release = (await res.json()) as Release;
+      }
+      const release = this.release;
       const asset = release.assets.find((a) => /arm64.*\.zip$/i.test(a.name));
       if (!asset) throw new Error(`Release ${release.tag_name} has no arm64 zip`);
-      this.release = release;
       this.set({ status: "available", latestVersion: version, releaseUrl: release.html_url, checkedAt: Date.now() });
     } catch (err) {
       this.set({ status: "idle", error: silent ? undefined : String((err as Error).message ?? err), checkedAt: Date.now() });
@@ -139,17 +155,23 @@ export class Updater extends EventEmitter<{ state: [UpdateState] }> {
       const res = await fetch(asset.browser_download_url, { headers: { "User-Agent": `pier/${app.getVersion()}` } });
       if (!res.ok || !res.body) throw new Error(`Download failed with ${res.status}`);
       let received = 0;
+      let reportedAt = 0;
       const total = asset.size;
       const progress = new (await import("node:stream")).Transform({
         transform: (chunk, _enc, cb) => {
           received += chunk.length;
-          if (total) this.set({ progress: Math.min(1, received / total) });
+          const now = Date.now();
+          if (total && now - reportedAt >= PROGRESS_INTERVAL_MS) {
+            reportedAt = now;
+            this.set({ progress: Math.min(1, received / total) });
+          }
           cb(null, chunk);
         },
       });
       await pipeline(Readable.fromWeb(res.body as never), progress, createWriteStream(zipPath));
       const size = (await stat(zipPath)).size;
       if (total && size !== total) throw new Error(`Downloaded ${size} bytes, expected ${total}`);
+      this.set({ status: "installing", progress: 1 });
 
       // ditto keeps symlinks and resource forks inside the bundle, unzip does not.
       const extractDir = join(work, "extracted");

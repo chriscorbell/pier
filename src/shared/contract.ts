@@ -237,7 +237,7 @@ export interface PiCommandResult<T = unknown> {
 // ---- updates ----
 
 export interface UpdateState {
-  status: "idle" | "checking" | "available" | "downloading" | "ready";
+  status: "idle" | "checking" | "available" | "downloading" | "installing" | "ready";
   currentVersion: string;
   latestVersion?: string;
   releaseUrl?: string;
