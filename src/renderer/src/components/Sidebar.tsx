@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ChevronDown, FolderPlus, PanelLeft, RefreshCw, RotateCw, Search, Settings2, SquarePen, X } from "lucide-react";
 import type { SessionStatus } from "@shared/contract";
 import { keyForPath, useApp } from "@/store/app";
 import { IconButton, Spinner } from "@/components/ui";
 import { SessionContextMenu } from "@/components/SessionActions";
+import { bridge } from "@/lib/bridge";
 import { cn, relativeTime } from "@/lib/utils";
 
 function StatusDot({ status }: { status: SessionStatus | "off" }) {
@@ -13,6 +14,33 @@ function StatusDot({ status }: { status: SessionStatus | "off" }) {
   if (status === "unread") return <span key="unread" className="anim-pop h-2 w-2 rounded-full bg-accent" />;
   return null;
 }
+
+/** Session paths whose conversation text matches the query, fetched from main after a short pause in typing. */
+function useContentSearch(query: string, paths: string[]): Set<string> {
+  const [hits, setHits] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    if (query.length < 2) {
+      setHits(new Set());
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void bridge.projects.search(paths, query).then((found) => {
+        if (!cancelled) setHits(new Set(found));
+      });
+    }, 180);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, paths]);
+  return hits;
+}
+
+type DropSide = "before" | "after";
+
+const EMPTY_DRAG_IMAGE = new Image();
+EMPTY_DRAG_IMAGE.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 export function Sidebar() {
   const projects = useApp((s) => s.projects);
@@ -24,13 +52,49 @@ export function Sidebar() {
   const openSession = useApp((s) => s.openSession);
   const selectSession = useApp((s) => s.selectSession);
   const openFolder = useApp((s) => s.openFolder);
-  const refreshProjects = useApp((s) => s.refreshProjects);
   const setSettingsOpen = useApp((s) => s.setSettingsOpen);
   const upd = useApp((s) => s.update);
+  const checkForUpdates = useApp((s) => s.checkForUpdates);
   const installUpdate = useApp((s) => s.installUpdate);
   const restartForUpdate = useApp((s) => s.restartForUpdate);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [drop, setDrop] = useState<{ cwd: string; side: DropSide } | null>(null);
+  // The drop target is also kept in a ref so dragend (which may fire without a drop) can commit it.
+  const dropRef = useRef<{ cwd: string; side: DropSide } | null>(null);
+  const placeDrop = (next: { cwd: string; side: DropSide } | null) => {
+    dropRef.current = next;
+    setDrop((cur) => (cur?.cwd === next?.cwd && cur?.side === next?.side ? cur : next));
+  };
+  // FLIP: when groups change order, each one slides from where it was to where it is now.
+  const groupEls = useRef(new Map<string, HTMLDivElement>());
+  const groupTops = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    for (const [cwd, el] of groupEls.current) {
+      const top = el.getBoundingClientRect().top;
+      const prev = groupTops.current.get(cwd);
+      groupTops.current.set(cwd, top);
+      // Only reorders slide. Other layout shifts (a group above collapsing) are already animated by the disclosure.
+      if (!dragging || prev === undefined || prev === top) continue;
+      el.style.transition = "none";
+      el.style.transform = `translateY(${prev - top}px)`;
+      void el.offsetHeight; // flush so the jump lands before the transition is restored
+      el.style.transition = "";
+      el.style.transform = "";
+    }
+  });
+  const finishDrag = (from: string) => {
+    const target = dropRef.current;
+    if (target && target.cwd !== from) moveProject(from, target.cwd, target.side);
+    setDragging(null);
+    placeDrop(null);
+  };
+  // Collapse toggles animate; the first paint and search filtering snap into place.
+  const instant = useRef(true);
+  useEffect(() => {
+    instant.current = false;
+  }, []);
 
   // Sessions that exist only as a live process (new, no file listed yet).
   const pendingByCwd = useMemo(() => {
@@ -44,11 +108,13 @@ export function Sidebar() {
     return out;
   }, [projects, live, sessions]);
 
+  // Pinned order first, then anything new in recency order.
   const allCwds = useMemo(() => {
     const set = new Set(projects.map((p) => p.cwd));
     for (const cwd of Object.keys(pendingByCwd)) set.add(cwd);
-    return [...set];
-  }, [projects, pendingByCwd]);
+    const rank = new Map(settings.projectOrder.map((cwd, i) => [cwd, i]));
+    return [...set].sort((a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity));
+  }, [projects, pendingByCwd, settings.projectOrder]);
 
   const collapsed = new Set(settings.collapsedProjects);
   const toggle = (cwd: string) => {
@@ -58,11 +124,56 @@ export function Sidebar() {
     void update({ collapsedProjects: [...next] });
   };
 
+  const reordered = (from: string, to: string, side: DropSide): string[] => {
+    const order = allCwds.filter((c) => c !== from);
+    const at = order.indexOf(to) + (side === "after" ? 1 : 0);
+    order.splice(at, 0, from);
+    return order;
+  };
+  const moveProject = (from: string, to: string, side: DropSide) => {
+    if (from === to) return;
+    void update({ projectOrder: reordered(from, to, side) });
+  };
+  // While a drag is in flight the list shows where the group will land instead of drawing a marker.
+  const shownCwds = dragging && drop && drop.cwd !== dragging ? reordered(dragging, drop.cwd, drop.side) : allCwds;
+
   const q = query.trim().toLowerCase();
+  const allPaths = useMemo(() => projects.flatMap((p) => p.sessions.map((s) => s.path)), [projects]);
+  const contentHits = useContentSearch(q, allPaths);
   const currentCwd = selectedKey ? sessions[selectedKey]?.cwd : undefined;
 
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="flex h-full flex-col"
+      onDragOver={(e) => {
+        if (!dragging) return;
+        // Every point in the sidebar is a valid drop, so the cursor never shows "no drop" and the drop always fires.
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const over = (e.target as HTMLElement).closest<HTMLElement>("[data-cwd]");
+        if (over?.dataset.cwd === dragging) return; // hovering the moved group itself: keep the current target
+        if (over) {
+          const box = over.getBoundingClientRect();
+          placeDrop({ cwd: over.dataset.cwd!, side: e.clientY < box.top + box.height / 2 ? "before" : "after" });
+          return;
+        }
+        // Gaps, the run-out below the last group, the toolbar above the first: nearest boundary by pointer position.
+        const groups = [...e.currentTarget.querySelectorAll<HTMLElement>("[data-cwd]")].filter((el) => el.dataset.cwd !== dragging);
+        if (groups.length === 0) return;
+        for (const el of groups) {
+          const box = el.getBoundingClientRect();
+          if (e.clientY < box.top + box.height / 2) {
+            placeDrop({ cwd: el.dataset.cwd!, side: "before" });
+            return;
+          }
+        }
+        placeDrop({ cwd: groups[groups.length - 1].dataset.cwd!, side: "after" });
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        if (dragging) finishDrag(dragging);
+      }}
+    >
       <div className="drag flex h-[52px] shrink-0 items-center pl-[98px] pr-2">
         <IconButton label="Hide sidebar (Cmd+B)" className="ml-auto" onClick={() => void update({ sidebarCollapsed: true })}>
           <PanelLeft className="h-4 w-4" strokeWidth={1.75} />
@@ -118,19 +229,6 @@ export function Sidebar() {
           >
             <SquarePen className="h-4 w-4" strokeWidth={1.75} />
           </IconButton>
-        </div>
-        <div className="mt-1 flex items-center gap-1">
-          <button
-            onClick={() => {
-              const all = allCwds.every((c) => collapsed.has(c));
-              void update({ collapsedProjects: all ? [] : allCwds });
-            }}
-            className="flex h-8 flex-1 items-center gap-2 rounded-md px-2 text-ui-[13.5px] text-fg-muted transition-colors hover:bg-hover hover:text-fg"
-          >
-            <FolderPlus className="h-3.5 w-3.5 opacity-0" strokeWidth={2} />
-            <span className="flex-1 text-left">All projects</span>
-            <ChevronDown className="h-3.5 w-3.5 text-fg-faint" strokeWidth={2} />
-          </button>
           <IconButton label="Open folder" className="h-8 w-8" onClick={() => void openFolder()}>
             <FolderPlus className="h-4 w-4" strokeWidth={1.75} />
           </IconButton>
@@ -139,7 +237,7 @@ export function Sidebar() {
 
       <div className="mt-2 flex-1 overflow-y-auto px-2 pb-4">
         {allCwds.length === 0 && <div className="px-2 pt-8 text-center text-ui-[13px] text-fg-faint">No sessions yet</div>}
-        {allCwds.map((cwd) => {
+        {shownCwds.map((cwd) => {
           const project = projects.find((p) => p.cwd === cwd);
           const name = project?.name ?? cwd.split("/").filter(Boolean).pop() ?? cwd;
           const pending = pendingByCwd[cwd] ?? [];
@@ -147,7 +245,10 @@ export function Sidebar() {
             ...pending.map((p) => ({ key: p.key, path: null as string | null, title: "New session", modifiedAt: null as string | null })),
             ...(project?.sessions ?? []).map((s) => ({ key: keyForPath(live, s.path), path: s.path, title: s.title, modifiedAt: s.modifiedAt })),
           ];
-          if (q) rows = rows.filter((r) => (r.title ?? "").toLowerCase().includes(q) || name.toLowerCase().includes(q));
+          if (q) {
+            const nameHit = name.toLowerCase().includes(q);
+            rows = rows.filter((r) => nameHit || (r.title ?? "").toLowerCase().includes(q) || (r.path !== null && contentHits.has(r.path)));
+          }
           if (q && rows.length === 0) return null;
           const isCollapsed = !q && collapsed.has(cwd);
           const attention = rows.filter((r) => {
@@ -155,8 +256,27 @@ export function Sidebar() {
             return st === "unread" || st === "needs-input";
           }).length;
           return (
-            <div key={cwd} className="mb-1">
-              <div className="group flex h-7 items-center gap-1 rounded-md pr-1 pl-2 text-ui-[12.5px] hover:bg-hover">
+            <div
+              key={cwd}
+              data-cwd={cwd}
+              ref={(el) => {
+                if (el) groupEls.current.set(cwd, el);
+                else groupEls.current.delete(cwd);
+              }}
+              className={cn("project-group mb-1", dragging === cwd && "opacity-40")}
+            >
+              <div
+                draggable={!q}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("application/x-pier-project", cwd);
+                  // The list itself previews the move; no floating snapshot of the row.
+                  e.dataTransfer.setDragImage(EMPTY_DRAG_IMAGE, 0, 0);
+                  setDragging(cwd);
+                }}
+                onDragEnd={() => finishDrag(cwd)}
+                className="group flex h-7 items-center gap-1 rounded-md pr-1 pl-2 text-ui-[12.5px] hover:bg-hover"
+              >
                 <button onClick={() => toggle(cwd)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left" title={cwd}>
                   <span className="truncate font-medium text-fg-faint">{name}</span>
                   {isCollapsed && attention > 0 && (
@@ -168,8 +288,11 @@ export function Sidebar() {
                   <SquarePen className="h-3.5 w-3.5" strokeWidth={2} />
                 </IconButton>
               </div>
-              {!isCollapsed && (
-                <div className="mt-0.5 flex flex-col gap-px">
+              <div className="disclosure" data-open={!isCollapsed} data-instant={instant.current || !!q}>
+                <div
+                  inert={isCollapsed}
+                  className={cn("flex flex-col gap-px pt-0.5 transition-opacity duration-150", isCollapsed && "opacity-0")}
+                >
                   {rows.length === 0 && <div className="px-2 py-1 text-ui-[13px] text-fg-faint">No sessions</div>}
                   {rows.map((r) => {
                     const st = live[r.key];
@@ -202,7 +325,7 @@ export function Sidebar() {
                     );
                   })}
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
@@ -239,8 +362,8 @@ export function Sidebar() {
         <IconButton label="Settings (Cmd+,)" onClick={() => setSettingsOpen(true)}>
           <Settings2 className="h-4 w-4" strokeWidth={1.75} />
         </IconButton>
-        <IconButton label="Refresh sessions" onClick={() => void refreshProjects()}>
-          <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.75} />
+        <IconButton label="Check for updates" disabled={upd.status === "checking"} onClick={() => void checkForUpdates()}>
+          <RefreshCw className={cn("h-3.5 w-3.5", upd.status === "checking" && "anim-spin")} strokeWidth={1.75} />
         </IconButton>
       </div>
     </div>

@@ -11,7 +11,10 @@ export type MenuCommand =
   | "nextSession"
   | "focusComposer"
   | "showChanges"
-  | "showTerminal";
+  | "showTerminal"
+  | "find"
+  | "findNext"
+  | "findPrevious";
 
 /** The macOS application menu. Commands that touch UI state are forwarded to the renderer. */
 export function installMenu(getWindow: () => BrowserWindow | null, checkForUpdates: () => void): void {
@@ -60,6 +63,10 @@ export function installMenu(getWindow: () => BrowserWindow | null, checkForUpdat
         { role: "paste" },
         { role: "pasteAndMatchStyle" },
         { role: "selectAll" },
+        { type: "separator" },
+        { label: "Find…", accelerator: "CmdOrCtrl+F", click: send("find") },
+        { label: "Find Next", accelerator: "CmdOrCtrl+G", click: send("findNext") },
+        { label: "Find Previous", accelerator: "CmdOrCtrl+Shift+G", click: send("findPrevious") },
       ],
     },
     {

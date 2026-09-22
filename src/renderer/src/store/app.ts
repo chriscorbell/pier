@@ -73,6 +73,8 @@ interface AppState {
   toasts: Toast[];
   settingsOpen: boolean;
   update: UpdateState;
+  /** Find-in-thread bar. `seq` bumps on every open request so an already open bar refocuses. */
+  find: { open: boolean; seq: number };
 
   init: () => Promise<void>;
   updateSettings: (patch: Partial<GuiSettings>) => Promise<void>;
@@ -99,6 +101,8 @@ interface AppState {
   pushToast: (message: string, kind?: Toast["kind"]) => void;
   dismissToast: (id: number) => void;
   setSettingsOpen: (open: boolean) => void;
+  openFind: () => void;
+  closeFind: () => void;
   checkForUpdates: () => Promise<void>;
   installUpdate: () => Promise<void>;
   restartForUpdate: () => Promise<void>;
@@ -402,6 +406,7 @@ export const useApp = create<AppState>((set, get) => {
     toasts: [],
     settingsOpen: false,
     update: { status: "idle", currentVersion: "" },
+    find: { open: false, seq: 0 },
 
     init: async () => {
       if (initStarted) return;
@@ -603,7 +608,15 @@ export const useApp = create<AppState>((set, get) => {
       setTimeout(() => set((st) => ({ toasts: st.toasts.filter((t) => t.id !== id) })), 190);
     },
     setSettingsOpen: (open) => set({ settingsOpen: open }),
-    checkForUpdates: () => bridge.update.check(),
+    openFind: () => set((st) => ({ find: { open: true, seq: st.find.seq + 1 } })),
+    closeFind: () => set((st) => (st.find.open ? { find: { ...st.find, open: false } } : st)),
+    checkForUpdates: async () => {
+      await bridge.update.check();
+      // A manual check deserves an answer even when there is nothing to install; errors already toast.
+      const update = await bridge.update.state();
+      set({ update });
+      if (update.status === "idle" && !update.error) get().pushToast(`Pier ${update.currentVersion} is up to date.`, "info");
+    },
     installUpdate: () => bridge.update.install(),
     restartForUpdate: () => bridge.update.restart(),
   };

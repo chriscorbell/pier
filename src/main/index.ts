@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { IPC, type ExtensionUiResponse, type GuiSettings, type ChangedFile } from "@shared/contract";
 import { loadSettings, saveSettings } from "./settings";
 import { scanProjects, SESSIONS_DIR } from "./sessions/scan";
+import { searchSessions } from "./sessions/search";
 import { SessionHost } from "./pi/session-host";
 import { changedFiles, currentBranch, patchFor } from "./git";
 import { locatePi } from "./pi/locate";
@@ -140,6 +141,7 @@ function registerIpc(): void {
     return cwd;
   });
   ipcMain.handle(IPC.projectFiles, async (_e, cwd: string) => listProjectFiles(cwd));
+  ipcMain.handle(IPC.sessionsSearch, (_e, paths: string[], query: string) => searchSessions(paths, query));
 
   ipcMain.handle(IPC.sessionOpen, (_e, cwd: string, path: string) => host.open(cwd, path));
   ipcMain.handle(IPC.sessionNew, (_e, cwd: string) => host.open(cwd, null));

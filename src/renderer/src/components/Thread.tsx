@@ -4,6 +4,7 @@ import { useApp } from "@/store/app";
 import { buildTranscript } from "@/lib/transcript";
 import { MainHeader } from "@/components/MainHeader";
 import { Transcript } from "@/components/Transcript";
+import { FindBar } from "@/components/FindBar";
 import { Composer } from "@/components/Composer";
 import { QueueList } from "@/components/QueueList";
 import { Button, Spinner } from "@/components/ui";
@@ -130,7 +131,8 @@ export function Thread() {
           </div>
         </div>
       ) : (
-        <>
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <FindBar scrollRef={scrollEl} />
           <div ref={setScrollEl} className="anim-crossfade min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-[860px] px-6 pt-2 pb-4">
               {session.loading && items.length === 0 ? (
@@ -159,7 +161,7 @@ export function Thread() {
             </div>
           </div>
           <div className="mx-auto w-full max-w-[860px] px-6 pb-5">{composerBlock}</div>
-        </>
+        </div>
       )}
     </div>
   );

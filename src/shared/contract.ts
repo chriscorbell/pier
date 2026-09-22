@@ -46,6 +46,8 @@ export interface GuiSettings {
   panelCollapsed: boolean;
   panelTab: "changes" | "terminal";
   collapsedProjects: string[];
+  /** Sidebar order of project cwds; projects not listed follow in recency order. */
+  projectOrder: string[];
   lastSessionKey: string | null;
   /** Interface font family; null means the system font. */
   uiFont: string | null;
@@ -79,6 +81,7 @@ export const DEFAULT_SETTINGS: GuiSettings = {
   panelCollapsed: true,
   panelTab: "changes",
   collapsedProjects: [],
+  projectOrder: [],
   lastSessionKey: null,
   uiFont: null,
   uiFontSize: 14,
@@ -257,6 +260,7 @@ export const IPC = {
   projectsList: "projects:list",
   projectOpenFolder: "project:openFolder",
   projectFiles: "project:files",
+  sessionsSearch: "sessions:search",
   sessionOpen: "session:open",
   sessionNew: "session:new",
   sessionClose: "session:close",

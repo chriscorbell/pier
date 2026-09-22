@@ -2,6 +2,9 @@ import { useEffect } from "react";
 import { useApp } from "@/store/app";
 import { bridge } from "@/lib/bridge";
 
+/** Fired on window with detail +1 or -1 when the Find Next / Find Previous menu items are used. */
+export const FIND_STEP_EVENT = "pier:find-step";
+
 /** Menu accelerators arrive from main as commands; only keys that do not belong in a menu stay here. */
 function runCommand(command: string): void {
   const app = useApp.getState();
@@ -47,6 +50,13 @@ function runCommand(command: string): void {
       break;
     case "focusComposer":
       document.querySelector<HTMLTextAreaElement>("textarea[data-composer]")?.focus();
+      break;
+    case "find":
+      if (app.selectedKey) app.openFind();
+      break;
+    case "findNext":
+    case "findPrevious":
+      if (app.find.open) window.dispatchEvent(new CustomEvent(FIND_STEP_EVENT, { detail: command === "findNext" ? 1 : -1 }));
       break;
   }
 }

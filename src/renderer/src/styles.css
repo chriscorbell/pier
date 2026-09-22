@@ -342,6 +342,19 @@ a[href] {
   transition-delay: 0ms;
   pointer-events: none;
 }
+/* Find in thread: every match gets a tint, the active one inverts to the accent. */
+::highlight(find-match) {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--fg);
+}
+::highlight(find-active) {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+/* Sidebar project groups slide to their new slot when reordered (FLIP sets the starting offset inline). */
+.project-group {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 100ms ease-out;
+}
 /* Disclosure bodies animate through grid rows so height is never measured in JS. */
 .disclosure {
   display: grid;
