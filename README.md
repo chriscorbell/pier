@@ -1,4 +1,6 @@
-<p align="center"><img src="assets/icon-tile.png" width="256" alt="Pier"></p>
+<p align="center"><img src="assets/icon-tile.png" width="128" alt="Pier"></p>
+
+<p align="center"><img src="assets/screenshot.png" width="800" alt="Pier showing a session transcript with the sidebar of projects and sessions"></p>
 
 # Pier
 
