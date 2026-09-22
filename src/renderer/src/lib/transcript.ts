@@ -77,7 +77,8 @@ export function buildTranscript(entries: SessionEntry[], leafId: string | null):
   // Model and reasoning changes before the first prompt are session setup, not conversation.
   let conversationStarted = false;
 
-  for (const e of path) {
+  for (let i = 0; i < path.length; i++) {
+    const e = path[i];
     if (e.type === "message" && e.message) {
       const m = e.message;
       switch (m.role) {
@@ -131,6 +132,13 @@ export function buildTranscript(entries: SessionEntry[], leafId: string | null):
         items.push({ kind: "compaction", id: e.id, summary: e.summary ?? "", tokensBefore: e.tokensBefore ?? 0 });
         break;
       case "model_change": {
+        // Switching models can re-clamp the reasoning level, which pi records as a second entry
+        // right after this one. Fold it into the model note so one action reads as one line.
+        const next = path[i + 1];
+        if (next?.type === "thinking_level_change") {
+          reasoning = next.thinkingLevel ?? reasoning;
+          i++;
+        }
         if (!conversationStarted) break;
         const level = reasoning ? (reasoning === "off" ? " with reasoning off" : ` with ${reasoningLabel(reasoning).toLowerCase()} reasoning`) : "";
         items.push({ kind: "note", id: e.id, text: `Model changed to ${e.provider}/${e.modelId}${level}` });
