@@ -128,7 +128,25 @@ export function MenuSeparator() {
 
 // ---- Dialog / sheet ----
 
-export function Sheet({ open, onOpenChange, title, children, width = 440 }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; children: React.ReactNode; width?: number }) {
+export function Sheet({
+  open,
+  onOpenChange,
+  title,
+  eyebrow,
+  description,
+  children,
+  width = 440,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  title: string;
+  /** Small label above the title, such as a dialog's category. */
+  eyebrow?: string;
+  /** Body text between the title and the content. */
+  description?: React.ReactNode;
+  children: React.ReactNode;
+  width?: number;
+}) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -137,7 +155,9 @@ export function Sheet({ open, onOpenChange, title, children, width = 440 }: { op
           style={{ width }}
           className="anim-fade-up fixed top-1/2 left-1/2 z-50 max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-border bg-surface-raised p-5 shadow-[var(--shadow)] focus:outline-none"
         >
-          <Dialog.Title className="mb-4 text-ui-[15px] font-semibold">{title}</Dialog.Title>
+          {eyebrow && <div className="mb-1 text-ui-[11.5px] font-medium tracking-wide text-fg-faint uppercase">{eyebrow}</div>}
+          <Dialog.Title className={cn("text-ui-[15px] font-semibold leading-snug", description ? "mb-2" : "mb-4")}>{title}</Dialog.Title>
+          {description && <div className="mb-4 text-ui-[13.5px] leading-relaxed text-fg-muted">{description}</div>}
           {children}
         </Dialog.Content>
       </Dialog.Portal>
