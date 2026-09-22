@@ -8,13 +8,15 @@ import { cn } from "@/lib/utils";
 const itemClass =
   "flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-ui-[13.5px] text-fg outline-none data-[highlighted]:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-40";
 
-async function copy(text: string, toast: (m: string) => void): Promise<void> {
+/** Write to the clipboard through main; the web clipboard needs a focused document, Electron's does not. */
+export async function copyText(text: string, toast: (m: string) => void): Promise<void> {
   try {
     await bridge.clipboard.write(text);
   } catch {
     toast("Could not write to the clipboard");
   }
 }
+const copy = copyText;
 
 /**
  * Right-click menu for a message: Copy the current text selection, or Copy message for the

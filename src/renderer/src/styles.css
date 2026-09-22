@@ -201,6 +201,7 @@ a[href] {
   padding: 0.1em 0.35em;
 }
 .prose-pi pre {
+  margin: 0;
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);

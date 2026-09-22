@@ -10,12 +10,17 @@ import { ToolCallRow } from "@/components/ToolCallRow";
 import { Spinner } from "@/components/ui";
 import { CopyButton, CopyMenu } from "@/components/CopyMenu";
 import { ImageThumb } from "@/components/Lightbox";
+import { CodeBlock } from "@/components/CodeBlock";
 import { cn } from "@/lib/utils";
+
+const markdownComponents = { pre: CodeBlock };
 
 const Markdown = memo(function Markdown({ text }: { text: string }) {
   return (
     <div className="prose-pi text-ui-[14.5px] leading-[1.6]">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        {text}
+      </ReactMarkdown>
     </div>
   );
 });
