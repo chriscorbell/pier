@@ -83,6 +83,7 @@ interface AppState {
   openSession: (cwd: string, path: string | null) => Promise<void>;
   selectSession: (key: string | null) => Promise<void>;
   trashSession: (key: string, path: string) => Promise<void>;
+  trashProject: (cwd: string) => Promise<void>;
   restartSession: (key: string) => Promise<void>;
 
   sendPrompt: (key: string, text: string, images: { data: string; mimeType: string }[]) => Promise<void>;
@@ -507,6 +508,22 @@ export const useApp = create<AppState>((set, get) => {
         const live = { ...st.live };
         delete live[key];
         return { sessions, live, selectedKey: st.selectedKey === key ? null : st.selectedKey };
+      });
+      await get().refreshProjects();
+    },
+
+    trashProject: async (cwd) => {
+      await bridge.projects.trash(cwd);
+      set((st) => {
+        const sessions = Object.fromEntries(Object.entries(st.sessions).filter(([, s]) => s.cwd !== cwd));
+        const live = Object.fromEntries(Object.entries(st.live).filter(([, l]) => l.cwd !== cwd));
+        const selectedKey = st.selectedKey && !sessions[st.selectedKey] ? null : st.selectedKey;
+        return { sessions, live, selectedKey };
+      });
+      const { settings } = get();
+      await get().updateSettings({
+        projectOrder: settings.projectOrder.filter((c) => c !== cwd),
+        collapsedProjects: settings.collapsedProjects.filter((c) => c !== cwd),
       });
       await get().refreshProjects();
     },

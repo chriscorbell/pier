@@ -1,5 +1,7 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, nativeTheme } from "electron";
 import { existsSync, watch, type FSWatcher } from "node:fs";
+import { readdir, rmdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { IPC, type ExtensionUiResponse, type GuiSettings, type ChangedFile } from "@shared/contract";
@@ -141,6 +143,7 @@ function registerIpc(): void {
     return cwd;
   });
   ipcMain.handle(IPC.projectFiles, async (_e, cwd: string) => listProjectFiles(cwd));
+  ipcMain.handle(IPC.projectTrash, async (_e, cwd: string) => trashProject(cwd));
   ipcMain.handle(IPC.sessionsSearch, (_e, paths: string[], query: string) => searchSessions(paths, query));
 
   ipcMain.handle(IPC.sessionOpen, (_e, cwd: string, path: string) => host.open(cwd, path));
@@ -186,6 +189,30 @@ function registerIpc(): void {
   // The async web clipboard needs a focused document; Electron's clipboard does not.
   ipcMain.handle(IPC.clipboardWrite, (_e, text: string) => clipboard.writeText(text));
   ipcMain.handle(IPC.fontsList, () => listSystemFonts());
+}
+
+/**
+ * Remove a project from the sidebar: stop its live Sessions, move every session file to the Trash,
+ * drop the emptied session folder, and forget the folder if it was opened by hand.
+ */
+async function trashProject(cwd: string): Promise<void> {
+  for (const l of host.liveStates()) {
+    if (l.cwd !== cwd) continue;
+    host.forget(l.key);
+    terminals.close(l.key);
+  }
+  const project = scanProjects([...openedFolders]).find((p) => p.cwd === cwd);
+  const dirs = new Set<string>();
+  for (const s of project?.sessions ?? []) {
+    await shell.trashItem(s.path);
+    dirs.add(dirname(s.path));
+  }
+  for (const dir of dirs) {
+    const left = await readdir(dir).catch(() => null);
+    if (left && left.length === 0) await rmdir(dir).catch(() => {});
+  }
+  openedFolders.delete(cwd);
+  updateBadge();
 }
 
 function listProjectFiles(cwd: string): Promise<string[]> {

@@ -22,6 +22,7 @@ export const bridge = {
     list: () => invoke(IPC.projectsList) as Promise<ProjectSummary[]>,
     openFolder: () => invoke(IPC.projectOpenFolder) as Promise<string | null>,
     files: (cwd: string) => invoke(IPC.projectFiles, cwd) as Promise<string[]>,
+    trash: (cwd: string) => invoke(IPC.projectTrash, cwd) as Promise<void>,
     /** The given session files whose conversation text contains the query. */
     search: (paths: string[], query: string) => invoke(IPC.sessionsSearch, paths, query) as Promise<string[]>,
   },

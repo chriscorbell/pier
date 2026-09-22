@@ -3,7 +3,7 @@ import { ArrowDownToLine, ChevronDown, FolderPlus, PanelLeft, RefreshCw, RotateC
 import type { SessionStatus } from "@shared/contract";
 import { keyForPath, useApp } from "@/store/app";
 import { IconButton, Spinner } from "@/components/ui";
-import { SessionContextMenu } from "@/components/SessionActions";
+import { ProjectContextMenu, SessionContextMenu, type SessionTarget } from "@/components/SessionActions";
 import { bridge } from "@/lib/bridge";
 import { cn, relativeTime } from "@/lib/utils";
 
@@ -59,6 +59,9 @@ export function Sidebar() {
   const restartForUpdate = useApp((s) => s.restartForUpdate);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  // Multi-selection of session rows: Cmd-click toggles, Shift-click extends from the anchor.
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const anchor = useRef<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [drop, setDrop] = useState<{ cwd: string; side: DropSide } | null>(null);
   // The drop target is also kept in a ref so dragend (which may fire without a drop) can commit it.
@@ -141,6 +144,51 @@ export function Sidebar() {
   const allPaths = useMemo(() => projects.flatMap((p) => p.sessions.map((s) => s.path)), [projects]);
   const contentHits = useContentSearch(q, allPaths);
   const currentCwd = selectedKey ? sessions[selectedKey]?.cwd : undefined;
+
+  // Each visible project with its rows, computed before render so ranges and menus see the whole list.
+  const groups = shownCwds.flatMap((cwd) => {
+    const project = projects.find((p) => p.cwd === cwd);
+    const name = project?.name ?? cwd.split("/").filter(Boolean).pop() ?? cwd;
+    const pending = pendingByCwd[cwd] ?? [];
+    let rows = [
+      ...pending.map((p) => ({ key: p.key, path: null as string | null, title: "New session", modifiedAt: null as string | null })),
+      ...(project?.sessions ?? []).map((s) => ({ key: keyForPath(live, s.path), path: s.path, title: s.title, modifiedAt: s.modifiedAt })),
+    ];
+    if (q) {
+      const nameHit = name.toLowerCase().includes(q);
+      rows = rows.filter((r) => nameHit || (r.title ?? "").toLowerCase().includes(q) || (r.path !== null && contentHits.has(r.path)));
+    }
+    if (q && rows.length === 0) return [];
+    const isCollapsed = !q && collapsed.has(cwd);
+    const targets: SessionTarget[] = rows.map((r) => ({ key: r.key, cwd, path: r.path, title: r.title ?? "Empty session" }));
+    return [{ cwd, name, project, rows, isCollapsed, targets }];
+  });
+  // Rows in display order, for Shift-click ranges and for turning picked keys into menu targets.
+  const flatRows: SessionTarget[] = groups.flatMap((g) => (g.isCollapsed ? [] : g.targets));
+  const pickedTargets = flatRows.filter((r) => picked.has(r.key));
+  const pickRow = (e: React.MouseEvent, target: SessionTarget) => {
+    if (e.shiftKey && anchor.current) {
+      const a = flatRows.findIndex((r) => r.key === anchor.current);
+      const b = flatRows.findIndex((r) => r.key === target.key);
+      if (a >= 0 && b >= 0) {
+        const [lo, hi] = a < b ? [a, b] : [b, a];
+        setPicked(new Set(flatRows.slice(lo, hi + 1).map((r) => r.key)));
+        return true;
+      }
+    }
+    if (e.metaKey || e.ctrlKey) {
+      const next = new Set(picked);
+      if (next.has(target.key)) next.delete(target.key);
+      else next.add(target.key);
+      anchor.current = target.key;
+      setPicked(next);
+      return true;
+    }
+    return false;
+  };
+  const clearPicked = () => {
+    if (picked.size) setPicked(new Set());
+  };
 
   return (
     <div
@@ -235,22 +283,13 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="mt-2 flex-1 overflow-y-auto px-2 pb-4">
+      <div
+        className="mt-2 flex-1 overflow-y-auto px-2 pb-4"
+        onClick={(e) => e.target === e.currentTarget && clearPicked()}
+        onKeyDown={(e) => e.key === "Escape" && clearPicked()}
+      >
         {allCwds.length === 0 && <div className="px-2 pt-8 text-center text-ui-[13px] text-fg-faint">No sessions yet</div>}
-        {shownCwds.map((cwd) => {
-          const project = projects.find((p) => p.cwd === cwd);
-          const name = project?.name ?? cwd.split("/").filter(Boolean).pop() ?? cwd;
-          const pending = pendingByCwd[cwd] ?? [];
-          let rows = [
-            ...pending.map((p) => ({ key: p.key, path: null as string | null, title: "New session", modifiedAt: null as string | null })),
-            ...(project?.sessions ?? []).map((s) => ({ key: keyForPath(live, s.path), path: s.path, title: s.title, modifiedAt: s.modifiedAt })),
-          ];
-          if (q) {
-            const nameHit = name.toLowerCase().includes(q);
-            rows = rows.filter((r) => nameHit || (r.title ?? "").toLowerCase().includes(q) || (r.path !== null && contentHits.has(r.path)));
-          }
-          if (q && rows.length === 0) return null;
-          const isCollapsed = !q && collapsed.has(cwd);
+        {groups.map(({ cwd, name, project, rows, isCollapsed, targets }) => {
           const attention = rows.filter((r) => {
             const st = live[r.key]?.status;
             return st === "unread" || st === "needs-input";
@@ -265,6 +304,7 @@ export function Sidebar() {
               }}
               className={cn("project-group mb-1", dragging === cwd && "opacity-40")}
             >
+              <ProjectContextMenu cwd={cwd} name={name} count={project?.sessions.length ?? 0}>
               <div
                 draggable={!q}
                 onDragStart={(e) => {
@@ -288,28 +328,43 @@ export function Sidebar() {
                   <SquarePen className="h-3.5 w-3.5" strokeWidth={2} />
                 </IconButton>
               </div>
+              </ProjectContextMenu>
               <div className="disclosure" data-open={!isCollapsed} data-instant={instant.current || !!q}>
                 <div
                   inert={isCollapsed}
                   className={cn("flex flex-col gap-px pt-0.5 transition-opacity duration-150", isCollapsed && "opacity-0")}
                 >
                   {rows.length === 0 && <div className="px-2 py-1 text-ui-[13px] text-fg-faint">No sessions</div>}
-                  {rows.map((r) => {
+                  {rows.map((r, ri) => {
                     const st = live[r.key];
                     const status: SessionStatus | "off" = st ? st.status : "off";
                     const selected = selectedKey === r.key;
                     const emphasized = status === "unread" || status === "needs-input";
+                    const target = targets[ri];
+                    const isPicked = picked.has(r.key);
                     return (
-                      <SessionContextMenu key={r.key} target={{ key: r.key, cwd, path: r.path, title: r.title ?? "Empty session" }}>
+                      <SessionContextMenu key={r.key} target={target} selection={picked.size > 1 ? pickedTargets : undefined}>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          if (pickRow(e, target)) return;
+                          clearPicked();
+                          anchor.current = r.key;
                           if (sessions[r.key]) void selectSession(r.key);
                           else if (r.path) void openSession(cwd, r.path);
                         }}
+                        onContextMenu={() => {
+                          // Right-clicking outside the picked rows retargets the menu to this row alone.
+                          if (!isPicked) clearPicked();
+                        }}
+                        data-picked={isPicked || undefined}
                         className={cn(
                           "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-ui-[13.5px] transition-colors duration-100 focus-visible:outline-none",
-                          selected ? "bg-active text-fg" : "text-fg-muted hover:bg-hover hover:text-fg focus-visible:bg-hover focus-visible:text-fg",
-                          emphasized && !selected && "text-fg",
+                          isPicked
+                            ? "bg-accent-soft text-fg"
+                            : selected
+                              ? "bg-active text-fg"
+                              : "text-fg-muted hover:bg-hover hover:text-fg focus-visible:bg-hover focus-visible:text-fg",
+                          emphasized && !selected && !isPicked && "text-fg",
                         )}
                       >
                         <span className={cn("min-w-0 flex-1 truncate", emphasized && "font-medium")}>{r.title ?? "Empty session"}</span>

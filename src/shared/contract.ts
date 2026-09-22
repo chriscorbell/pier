@@ -263,6 +263,7 @@ export const IPC = {
   projectsList: "projects:list",
   projectOpenFolder: "project:openFolder",
   projectFiles: "project:files",
+  projectTrash: "project:trash",
   sessionsSearch: "sessions:search",
   sessionOpen: "session:open",
   sessionNew: "session:new",
