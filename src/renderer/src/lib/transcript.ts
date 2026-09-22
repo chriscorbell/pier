@@ -21,8 +21,8 @@ export function textOf(content: string | ContentBlock[] | undefined): string {
     .join("");
 }
 
-/** Walk the active branch (leaf to root) and turn it into renderable items in order. */
-export function buildTranscript(entries: SessionEntry[], leafId: string | null): TranscriptItem[] {
+/** The active branch, root first: from the leaf (or the last entry) back through parent links. */
+export function activeBranch(entries: SessionEntry[], leafId: string | null): SessionEntry[] {
   if (!entries.length) return [];
   const byId = new Map<string, SessionEntry>();
   for (const e of entries) byId.set(e.id, e);
@@ -34,7 +34,39 @@ export function buildTranscript(entries: SessionEntry[], leafId: string | null):
     path.push(cur);
     cur = cur.parentId ? byId.get(cur.parentId) : undefined;
   }
-  path.reverse();
+  return path.reverse();
+}
+
+/** A task from the rpiv-todo extension. Every `todo` tool result carries the full list in `details.tasks`. */
+export interface TodoTask {
+  id: number;
+  subject: string;
+  description?: string;
+  activeForm?: string;
+  status: "pending" | "in_progress" | "completed" | "deleted";
+  blockedBy?: number[];
+  owner?: string;
+}
+
+/**
+ * The latest todo list on the active branch: the last successful `todo` result's snapshot. This is
+ * how the extension itself restores state after a reload, so no extra channel is needed.
+ */
+export function todoSnapshot(entries: SessionEntry[], leafId: string | null): TodoTask[] {
+  const path = activeBranch(entries, leafId);
+  for (let i = path.length - 1; i >= 0; i--) {
+    const m = path[i].message;
+    if (!m || m.role !== "toolResult" || m.toolName !== "todo" || m.isError) continue;
+    const tasks = m.details?.tasks;
+    if (Array.isArray(tasks)) return tasks as TodoTask[];
+  }
+  return [];
+}
+
+/** Walk the active branch (leaf to root) and turn it into renderable items in order. */
+export function buildTranscript(entries: SessionEntry[], leafId: string | null): TranscriptItem[] {
+  const path = activeBranch(entries, leafId);
+  if (!path.length) return [];
 
   const items: TranscriptItem[] = [];
   const pendingResults = new Map<string, ToolResultMsg>();

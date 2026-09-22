@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { useApp } from "@/store/app";
-import { buildTranscript } from "@/lib/transcript";
+import { buildTranscript, todoSnapshot } from "@/lib/transcript";
 import { MainHeader } from "@/components/MainHeader";
 import { Transcript } from "@/components/Transcript";
 import { FindBar } from "@/components/FindBar";
 import { Composer } from "@/components/Composer";
 import { QueueList } from "@/components/QueueList";
+import { TodoPanel } from "@/components/TodoPanel";
 import { Button, Spinner } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ export function Thread() {
   const openSession = useApp((s) => s.openSession);
 
   const items = useMemo(() => (session ? buildTranscript(session.entries, session.leafId) : []), [session?.entries, session?.leafId]);
+  const todos = useMemo(() => (session ? todoSnapshot(session.entries, session.leafId) : []), [session?.entries, session?.leafId]);
 
   // Anchor to the bottom while the user is at the bottom. Scrolling up detaches; scrolling back
   // within 48px of the bottom reattaches. The listener is bound through a callback ref because the
@@ -101,6 +103,7 @@ export function Thread() {
           ))}
         </div>
       )}
+      <TodoPanel tasks={todos} working={live?.status === "working"} />
       <QueueList sessionKey={key} queue={session.queue} />
       <Composer sessionKey={key} />
     </>

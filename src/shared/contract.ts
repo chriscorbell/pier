@@ -48,6 +48,8 @@ export interface GuiSettings {
   collapsedProjects: string[];
   /** Sidebar order of project cwds; projects not listed follow in recency order. */
   projectOrder: string[];
+  /** The todo panel above the composer shows only its heading. */
+  todosCollapsed: boolean;
   lastSessionKey: string | null;
   /** Interface font family; null means the system font. */
   uiFont: string | null;
@@ -82,6 +84,7 @@ export const DEFAULT_SETTINGS: GuiSettings = {
   panelTab: "changes",
   collapsedProjects: [],
   projectOrder: [],
+  todosCollapsed: false,
   lastSessionKey: null,
   uiFont: null,
   uiFontSize: 14,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, FileEdit, FilePlus, FileText, FolderSearch, Search, Terminal, Wrench, Check, X } from "lucide-react";
+import { ChevronRight, FileEdit, FilePlus, FileText, FolderSearch, ListTodo, Search, Terminal, Wrench, Check, X } from "lucide-react";
 import type { ContentBlock } from "@shared/contract";
 import type { ToolRun } from "@/store/app";
 import type { ToolResultMsg } from "@/lib/transcript";
@@ -25,6 +25,8 @@ function iconFor(name: string) {
     case "find":
     case "ls":
       return FolderSearch;
+    case "todo":
+      return ListTodo;
     default:
       return Wrench;
   }
@@ -48,6 +50,19 @@ function summary(call: ToolCall): string {
       return `${a.pattern ?? ""}${a.path ? ` in ${a.path}` : ""}`;
     case "ls":
       return String(a.path ?? ".");
+    case "todo": {
+      const ref = a.id != null ? `#${a.id}` : "";
+      switch (a.action) {
+        case "create":
+          return `create ${a.subject ?? ""}`;
+        case "update":
+          return `update ${ref}${a.status ? ` → ${String(a.status).replace("_", " ")}` : ""}`;
+        case "list":
+          return `list${a.status ? ` ${a.status}` : ""}`;
+        default:
+          return `${a.action ?? ""} ${ref}`.trim();
+      }
+    }
     default: {
       const keys = Object.keys(a);
       if (keys.length === 0) return "";
