@@ -1,7 +1,7 @@
 {
   "name": "pier",
   "productName": "Pier",
-  "version": "0.8.13",
+  "version": "0.8.14",
   "description": "Pier: a macOS desktop client for the pi coding agent",
   "license": "MIT",
   "private": true,
