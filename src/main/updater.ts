@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { UpdateState } from "@shared/contract";
+import { logError } from "./log";
 
 const run = promisify(execFile);
 const REPO = "chriscorbell/pier";
@@ -133,6 +134,7 @@ export class Updater extends EventEmitter<{ state: [UpdateState] }> {
       if (!asset) throw new Error(`Release ${release.tag_name} has no arm64 zip`);
       this.set({ status: "available", latestVersion: version, releaseUrl: release.html_url, checkedAt: Date.now() });
     } catch (err) {
+      logError("update-check", err);
       this.set({ status: "idle", error: silent ? undefined : String((err as Error).message ?? err), checkedAt: Date.now() });
     }
   }
@@ -197,6 +199,7 @@ export class Updater extends EventEmitter<{ state: [UpdateState] }> {
       this.installedPath = targetApp;
       this.set({ status: "ready", progress: 1 });
     } catch (err) {
+      logError("update-install", err);
       this.set({ status: "available", error: String((err as Error).message ?? err), progress: undefined });
     } finally {
       if (work) await rm(work, { recursive: true, force: true }).catch(() => {});

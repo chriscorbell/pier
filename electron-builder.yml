@@ -15,9 +15,13 @@ mac:
       arch: [arm64]
     - target: zip
       arch: [arm64]
-  identity: null
-  hardenedRuntime: false
+  # Signed with a Developer ID certificate when CSC_LINK is set (release workflow), ad-hoc otherwise.
+  hardenedRuntime: true
   gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Notarized when APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID are set; skipped otherwise.
+  notarize: true
   darkModeSupport: true
   minimumSystemVersion: "13.0"
   extendInfo:

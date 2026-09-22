@@ -50,6 +50,8 @@ export interface GuiSettings {
   projectOrder: string[];
   /** The todo panel above the composer shows only its heading. */
   todosCollapsed: boolean;
+  /** Last window frame, restored on launch when it still fits a display. */
+  windowBounds: { x: number; y: number; width: number; height: number } | null;
   lastSessionKey: string | null;
   /** Interface font family; null means the system font. */
   uiFont: string | null;
@@ -85,6 +87,7 @@ export const DEFAULT_SETTINGS: GuiSettings = {
   collapsedProjects: [],
   projectOrder: [],
   todosCollapsed: false,
+  windowBounds: null,
   lastSessionKey: null,
   uiFont: null,
   uiFontSize: 14,

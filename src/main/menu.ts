@@ -1,5 +1,6 @@
 import { app, Menu, shell, type BrowserWindow, type MenuItemConstructorOptions } from "electron";
 import { IPC } from "@shared/contract";
+import { LOG_FILE } from "./log";
 
 export type MenuCommand =
   | "newSession"
@@ -109,6 +110,8 @@ export function installMenu(getWindow: () => BrowserWindow | null, checkForUpdat
       submenu: [
         { label: "Pier on GitHub", click: () => void shell.openExternal("https://github.com/chriscorbell/pier") },
         { label: "pi Documentation", click: () => void shell.openExternal("https://github.com/earendil-works/pi-mono") },
+        { type: "separator" },
+        { label: "Show Log File", click: () => shell.showItemInFolder(LOG_FILE) },
       ],
     },
   ];

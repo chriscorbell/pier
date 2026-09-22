@@ -1,4 +1,5 @@
-import { accessSync, constants, existsSync, readdirSync } from "node:fs";
+import { accessSync, constants, existsSync, readdirSync, statSync } from "node:fs";
+import { execFile } from "node:child_process";
 import { delimiter, dirname, join } from "node:path";
 import { homedir } from "node:os";
 
@@ -54,4 +55,50 @@ export function piEnv(piPath: string): NodeJS.ProcessEnv {
   const seen = new Set<string>();
   const path = [...(process.env.PATH ?? "").split(delimiter), ...extra].filter((d) => d && !seen.has(d) && seen.add(d)).join(delimiter);
   return { ...process.env, PATH: path, PI_GUI: "1" };
+}
+
+/** The oldest pi whose RPC protocol Pier understands. */
+export const MIN_PI_VERSION = "0.85.0";
+
+const versionCache = new Map<string, { mtimeMs: number; version: string | null }>();
+
+function parseVersion(v: string): number[] {
+  return v.split(".").map((n) => parseInt(n, 10) || 0);
+}
+
+function olderThan(version: string, min: string): boolean {
+  const a = parseVersion(version);
+  const b = parseVersion(min);
+  for (let i = 0; i < 3; i++) {
+    if ((a[i] ?? 0) < (b[i] ?? 0)) return true;
+    if ((a[i] ?? 0) > (b[i] ?? 0)) return false;
+  }
+  return false;
+}
+
+/** The version `pi --version` reports, cached until the binary changes on disk. Null when it cannot be read. */
+export function piVersion(piPath: string): Promise<string | null> {
+  let mtimeMs = 0;
+  try {
+    mtimeMs = statSync(piPath).mtimeMs;
+  } catch {
+    return Promise.resolve(null);
+  }
+  const hit = versionCache.get(piPath);
+  if (hit && hit.mtimeMs === mtimeMs) return Promise.resolve(hit.version);
+  return new Promise((resolve) => {
+    execFile(piPath, ["--version"], { env: piEnv(piPath), timeout: 10000 }, (err, stdout) => {
+      const version = err ? null : (/(\d+\.\d+\.\d+)/.exec(stdout)?.[1] ?? null);
+      versionCache.set(piPath, { mtimeMs, version });
+      resolve(version);
+    });
+  });
+}
+
+/** A message explaining why this pi cannot be used, or null when it is new enough. */
+export async function piVersionProblem(piPath: string): Promise<string | null> {
+  const version = await piVersion(piPath);
+  if (version === null) return `Could not read the version of pi at ${piPath}. Pier needs pi ${MIN_PI_VERSION} or newer.`;
+  if (olderThan(version, MIN_PI_VERSION)) return `pi ${version} at ${piPath} is too old. Pier needs pi ${MIN_PI_VERSION} or newer.`;
+  return null;
 }

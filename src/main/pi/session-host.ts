@@ -2,8 +2,9 @@ import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import type { ExtensionUiResponse, PiCommandResult, PiEvent, PiState, SessionLiveState, SessionStatus } from "@shared/contract";
 import { RpcClient } from "./rpc-client";
-import { locatePi } from "./locate";
+import { locatePi, piVersionProblem } from "./locate";
 import { loadSettings } from "../settings";
+import { logError } from "../log";
 import { play } from "../sound";
 
 const POOL_SIZE = 3;
@@ -141,6 +142,12 @@ export class SessionHost extends EventEmitter<SessionHostEvents> {
       this.emitLive(host);
       return;
     }
+    const problem = await piVersionProblem(piPath);
+    if (problem) {
+      host.crashed = problem;
+      this.emitLive(host);
+      return;
+    }
     host.crashed = null;
     const args = host.path ? ["--session", host.path] : [];
     const client = new RpcClient(piPath, host.cwd, args);
@@ -153,6 +160,7 @@ export class SessionHost extends EventEmitter<SessionHostEvents> {
       host.pendingDialogs.clear();
       if (!host.evicting) {
         host.crashed = `pi exited (${signal ?? code ?? "unknown"}).${stderr ? "\n" + stderr.trim() : ""}`;
+        logError("pi", `${host.cwd}: ${host.crashed}`);
       }
       host.evicting = false;
       this.emitLive(host);

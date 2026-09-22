@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, nativeTheme } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, screen, shell, nativeTheme } from "electron";
 import { existsSync, watch, type FSWatcher } from "node:fs";
 import { readdir, rmdir } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -15,9 +15,11 @@ import { TerminalHost } from "./terminal";
 import { installDockMenu, installMenu } from "./menu";
 import { Updater } from "./updater";
 import { listSystemFonts } from "./fonts";
+import { installErrorLog, logError } from "./log";
 
 // The dev binary is Electron.app, whose bundle name shows in the menu bar; the name here fixes
 // app.getName(), the About panel, the user-data folder, and the menu labels in both dev and packaged builds.
+installErrorLog();
 app.setName("Pier");
 app.setAboutPanelOptions({
   applicationName: "Pier",
@@ -47,10 +49,27 @@ function updateBadge(): void {
   app.dock?.setBadge(n > 0 ? String(n) : "");
 }
 
+/** The saved frame, if it still overlaps a connected display; otherwise the default size, centered. */
+function restoredBounds(): Partial<Electron.Rectangle> {
+  const saved = loadSettings().windowBounds;
+  if (!saved) return { width: 1360, height: 880 };
+  const display = screen.getDisplayMatching(saved).workArea;
+  const overlaps = saved.x < display.x + display.width - 80 && saved.x + saved.width > display.x + 80 && saved.y >= display.y - 20 && saved.y < display.y + display.height - 80;
+  return overlaps ? saved : { width: saved.width, height: saved.height };
+}
+
+let boundsTimer: NodeJS.Timeout | null = null;
+function rememberBounds(): void {
+  if (!win || win.isFullScreen() || win.isMinimized()) return;
+  if (boundsTimer) clearTimeout(boundsTimer);
+  boundsTimer = setTimeout(() => {
+    if (win) saveSettings({ windowBounds: win.getNormalBounds() });
+  }, 300);
+}
+
 function createWindow(): void {
   win = new BrowserWindow({
-    width: 1360,
-    height: 880,
+    ...restoredBounds(),
     minWidth: 900,
     minHeight: 560,
     show: false,
@@ -79,6 +98,8 @@ function createWindow(): void {
     host.setWindowFocused(false);
     send(IPC.windowFocus, false);
   });
+  win.on("resize", rememberBounds);
+  win.on("move", rememberBounds);
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };

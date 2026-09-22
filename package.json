@@ -16,6 +16,7 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
     "dist": "electron-vite build && electron-builder --mac --arm64 --publish never",
     "postinstall": "electron-rebuild -f -w node-pty"
   },
@@ -50,6 +51,7 @@
     "electron-vite": "^5.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.0",
-    "vite": "^7.0.0"
+    "vite": "^7.0.0",
+    "vitest": "^5.0.1"
   }
 }
