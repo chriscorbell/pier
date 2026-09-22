@@ -19,7 +19,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     <button
       ref={ref}
       className={cn(
-        "no-drag inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-[background-color,transform,opacity] duration-100 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+        "no-drag inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-[background-color,transform,opacity] duration-100 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
         size === "sm" ? "h-7 px-2.5 text-ui-[13px]" : "h-8 px-3 text-ui-[14px]",
         variant === "default" && "border border-border-strong bg-surface-raised text-fg hover:bg-hover",
         variant === "primary" && "bg-accent text-accent-fg hover:brightness-110",
@@ -44,7 +44,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
         ref={ref}
         aria-label={label}
         className={cn(
-          "no-drag inline-flex h-7 w-7 items-center justify-center rounded-md text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg active:bg-active disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+          "no-drag inline-flex h-7 w-7 items-center justify-center rounded-md text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg active:bg-active disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
           active && "bg-active text-fg",
           className,
         )}
@@ -171,7 +171,7 @@ export function Switch({ checked, onCheckedChange, id }: { checked: boolean; onC
       id={id}
       checked={checked}
       onCheckedChange={onCheckedChange}
-      className="relative h-5 w-9 shrink-0 rounded-full border border-border-strong bg-bg-sunken transition-colors data-[state=checked]:border-accent data-[state=checked]:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="relative h-5 w-9 shrink-0 rounded-full border border-border-strong bg-bg-sunken transition-colors data-[state=checked]:border-accent data-[state=checked]:bg-accent focus-visible:outline-none focus-visible:border-focus"
     >
       <SwitchPrimitive.Thumb className="block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-[18px]" />
     </SwitchPrimitive.Root>
@@ -195,7 +195,7 @@ export function Select<T extends string>({ value, options, onChange }: { value: 
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as T)}
-      className="h-7 rounded-md border border-border-strong bg-surface-raised px-2 text-ui-[13.5px] text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="h-7 rounded-md border border-border-strong bg-surface-raised px-2 text-ui-[13.5px] text-fg focus-visible:outline-none focus-visible:border-focus"
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>

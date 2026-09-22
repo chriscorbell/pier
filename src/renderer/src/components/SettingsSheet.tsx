@@ -33,7 +33,7 @@ function FontSelect({
     <select
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
-      className="h-7 w-[168px] rounded-md border border-border-strong bg-surface-raised px-2 text-ui-[13.5px] text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="h-7 w-[168px] rounded-md border border-border-strong bg-surface-raised px-2 text-ui-[13.5px] text-fg focus-visible:outline-none focus-visible:border-focus"
     >
       <option value="">{defaultLabel}</option>
       {fonts === null && value && <option value={value}>{value}</option>}
@@ -57,7 +57,7 @@ function ThemeSelect({ value, onChange, groups, defaultLabel }: { value: string;
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-7 w-[168px] rounded-md border border-border-strong bg-surface-raised px-2 text-ui-[13.5px] text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="h-7 w-[168px] rounded-md border border-border-strong bg-surface-raised px-2 text-ui-[13.5px] text-fg focus-visible:outline-none focus-visible:border-focus"
     >
       <option value={groups.length > 1 ? MATCH_INTERFACE : DEFAULT_THEME}>{defaultLabel}</option>
       {groups.map((g) =>
@@ -196,7 +196,7 @@ export function SettingsSheet() {
             onChange={(e) => setPiPath(e.target.value)}
             onBlur={() => void update({ piPath: piPath.trim() || null })}
             placeholder="/opt/homebrew/bin/pi"
-            className="h-8 w-full rounded-md border border-border-strong bg-bg-sunken px-2 font-mono text-ui-[13px] text-fg placeholder:text-fg-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            className="h-8 w-full rounded-md border border-border-strong bg-bg-sunken px-2 font-mono text-ui-[13px] text-fg placeholder:text-fg-faint focus-visible:outline-none focus-visible:border-focus"
           />
         </div>
       </div>

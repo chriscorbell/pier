@@ -162,7 +162,7 @@ export function DialogSheet() {
                 data-option
                 onClick={() => void respond(key, dialog.id, { value: raw })}
                 className={cn(
-                  "group flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors duration-100 hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                  "group flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors duration-100 hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
                   o.custom ? "border-dashed border-border-strong text-fg-muted hover:text-fg" : "border-border",
                 )}
               >
@@ -217,7 +217,7 @@ export function DialogSheet() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={dialog.placeholder}
-              className="h-9 w-full rounded-md border border-border-strong bg-bg-sunken px-2.5 text-ui-[14px] text-fg placeholder:text-fg-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="h-9 w-full rounded-md border border-border-strong bg-bg-sunken px-2.5 text-ui-[14px] text-fg placeholder:text-fg-faint focus-visible:outline-none focus-visible:border-focus"
             />
           ) : (
             <textarea
@@ -225,7 +225,7 @@ export function DialogSheet() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={14}
-              className="w-full resize-y rounded-md border border-border-strong bg-bg-sunken p-2.5 font-mono text-ui-[13px] text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="w-full resize-y rounded-md border border-border-strong bg-bg-sunken p-2.5 font-mono text-ui-[13px] text-fg focus-visible:outline-none focus-visible:border-focus"
             />
           )}
           <div className="mt-3 flex justify-end gap-2">
